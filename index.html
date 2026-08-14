@@ -1,0 +1,29 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Script2Video AI</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#070914;color:#f6f7ff;font-family:Inter,system-ui,Arial}.wrap{max-width:1100px;margin:auto;padding:30px 18px}.nav{display:flex;justify-content:space-between;align-items:center;padding:10px 0 28px}.logo{font-size:23px;font-weight:850}.logo i{font-style:normal;color:#8b5cf6}.pill{border:1px solid #30344e;padding:7px 12px;border-radius:99px;font-size:12px;color:#aeb3d0}.hero{text-align:center;margin:20px 0 30px}.hero h1{font-size:clamp(38px,6vw,68px);letter-spacing:-2px;margin:0}.hero span{background:linear-gradient(90deg,#8b5cf6,#22d3ee);-webkit-background-clip:text;color:transparent}.hero p{color:#969bb8}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.card{background:#0d1020;border:1px solid #252945;border-radius:22px;padding:22px}h2{font-size:18px;margin-top:0}textarea{width:100%;height:330px;background:#080b16;border:1px solid #2b2f49;border-radius:15px;color:#fff;padding:16px;font-size:15px;line-height:1.6;resize:vertical;outline:0}button{width:100%;margin-top:14px;border:0;border-radius:13px;padding:15px;font-size:15px;font-weight:800;color:white;background:linear-gradient(90deg,#7c3aed,#2563eb);cursor:pointer}button:disabled{opacity:.5}.meta{display:flex;justify-content:space-between;color:#858aa8;font-size:12px;margin:9px 2px}.video{width:100%;aspect-ratio:16/9;background:#05060b;border-radius:15px;display:grid;place-items:center;overflow:hidden}.video video{width:100%;height:100%;object-fit:contain}.empty{color:#626984}.status{margin-top:14px;background:#080b16;border:1px solid #252945;padding:14px;border-radius:13px;font-size:13px;color:#aeb3ce}.bar{height:7px;background:#1e2237;border-radius:9px;margin-top:10px;overflow:hidden}.bar div{height:100%;width:0;background:linear-gradient(90deg,#8b5cf6,#22d3ee);transition:.3s}.download{display:none;text-align:center;margin-top:12px;color:#c9ccdf;text-decoration:none}.note{font-size:11px;color:#6f7591;margin-top:10px;line-height:1.5}@media(max-width:780px){.grid{grid-template-columns:1fr}}
+</style></head>
+<body><div class="wrap">
+<div class="nav"><div class="logo">Script<i>2Video</i> AI</div><div class="pill">REAL AI • MAX 30 SEC</div></div>
+<div class="hero"><h1>Turn your script into <span>video.</span></h1><p>Real AI video generation with voice taken from your script.</p></div>
+<div class="grid"><section class="card"><h2>✍️ Script</h2><textarea id="script" placeholder="Write your complete script here. There is no character limit."></textarea><div class="meta"><span>No character limit</span><span id="count">0 characters</span></div><button id="go">✨ Generate real video</button><div class="note">This deployment uses real AI video generation. For a production 30-second pipeline, add persistent storage and a background job queue.</div></section>
+<section class="card"><h2>🎬 Video preview</h2><div class="video"><div class="empty" id="empty">Your generated video will appear here.</div><video id="player" controls playsinline style="display:none"></video></div><div class="status" id="status">Ready.<div class="bar"><div id="bar"></div></div></div><a id="download" class="download" download="script2video.mp4">⬇ Download MP4</a></section></div>
+</div>
+<script>
+const s=document.getElementById('script'),c=document.getElementById('count'),go=document.getElementById('go'),st=document.getElementById('status'),bar=document.getElementById('bar'),player=document.getElementById('player'),empty=document.getElementById('empty'),dl=document.getElementById('download');
+s.oninput=()=>c.textContent=s.value.length.toLocaleString()+' characters';
+go.onclick=async()=>{
+ if(!s.value.trim())return alert('Enter a script first.');
+ go.disabled=true;player.style.display='none';empty.style.display='block';dl.style.display='none';
+ const r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({script:s.value})});
+ const j=await r.json(); if(!r.ok){alert(j.error);go.disabled=false;return}
+ const poll=setInterval(async()=>{
+  const x=await (await fetch('/api/status?id='+j.jobId)).json();
+  st.childNodes[0].textContent=x.status==='completed'?'Video ready!':x.status==='error'?'Generation failed: '+x.error:' '+x.status+'…';
+  bar.style.width=x.progress+'%';
+  if(x.status==='completed'){clearInterval(poll);player.src=x.video;player.style.display='block';empty.style.display='none';dl.href=x.video;dl.style.display='block';go.disabled=false}
+  if(x.status==='error'){clearInterval(poll);go.disabled=false}
+ },3000);
+};
+</script></body></html>
